@@ -13556,7 +13556,7 @@ var_0_69.set = {
 		accept = { show = true, color = var_0_8.ImFloat4(1, 0, 0, 1), text = var_0_8.ImBuffer(var_0_20("[Без аццепта]"), 256) },
 		tools = { show = true, color_0 = var_0_8.ImFloat4(1, 0, 0, 1), color_1 = var_0_8.ImFloat4(0, 1, 0, 1) }
 	},
-	line_format = var_0_8.ImBuffer(var_0_20("{tools:| }{acolor}{nick}[{id}]{spec: - /re [%s]}{afk: - AFK: %s}{rep: - Rep: %s} {note}"), 256),
+	line_format = var_0_8.ImBuffer(var_0_20("{tools:| }{acolor}{nick}[{id}]{spec: - /re %s]}{afk: - AFK: %s}{rep: - Rep: %s} {note}"), 256),
 	bool_format = var_0_8.ImBool(false),
 	time_format = var_0_8.ImBool(true),
 	spec_hide = var_0_8.ImBool(false),
@@ -48807,7 +48807,7 @@ function replaceTagsAdm(arg_814_0, arg_814_1)
 		end
 		if var_819_2 and arg_814_0.spec_name then
 			if var_819_3 then
-				var_819_1 = "[" .. arg_814_0.spec_name .. " id:" .. tostring(arg_814_0.spec) .. "]"
+				var_819_1 = arg_814_0.spec_name .. "[" .. tostring(arg_814_0.spec)
 			else
 				var_819_1 = "[" .. arg_814_0.spec_name .. "]"
 			end
