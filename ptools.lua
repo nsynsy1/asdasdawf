@@ -37081,135 +37081,214 @@ function renderGps()
 end
 
 function keysLogger()
-	local var_540_0, var_540_1 = getScreenResolution()
+    local sx, sy = getScreenResolution()
+    
+    var_0_8.SetNextWindowPos(var_0_8.ImVec2(var_0_86.pos[1], var_0_86.pos[2]), var_0_8.Cond.Always, var_0_8.ImVec2(var_0_21.condX[var_0_86.align], 1))
+    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowMinSize, var_0_8.ImVec2(200, 40))
+    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowPadding, var_0_8.ImVec2(10, 10))
+    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowRounding, 10)
+    var_0_8.PushStyleVar(var_0_8.StyleVar.FrameRounding, 8)
 
-	var_0_8.SetNextWindowPos(var_0_8.ImVec2(var_0_86.pos[1], var_0_86.pos[2]), var_0_8.Cond.Always, var_0_8.ImVec2(var_0_21.condX[var_0_86.align], 1))
-	var_0_8.PushStyleVar(var_0_8.StyleVar.WindowMinSize, var_0_8.ImVec2(200, 40))
-	var_0_8.PushStyleVar(var_0_8.StyleVar.WindowPadding, var_0_8.ImVec2(10, 10))
-	var_0_8.PushStyleVar(var_0_8.StyleVar.WindowRounding, 10)
+    -- Прозрачный фон для ручной отрисовки
+    var_0_8.PushStyleColor(var_0_8.Col.WindowBg, var_0_8.ImVec4(0, 0, 0, 0))
 
-	if var_0_86.no_bg.v then
-		var_0_8.PushStyleColor(var_0_8.Col.WindowBg, var_0_8.ImVec4(0, 0, 0, 0))
-	else
-		var_0_8.PushStyleColor(var_0_8.Col.WindowBg, var_0_113.to_vec4(var_0_113.palette.accent2.color_900))
-	end
+    var_0_8.Begin("##KeysLogger", nil, 12361)
+    
+    -- Получаем позицию и размер окна для отрисовки фона
+    local win_pos = var_0_8.GetWindowPos()
+    local win_size = var_0_8.GetWindowSize()
+    local draw_list = var_0_8.GetWindowDrawList()
+    
+    -- Если фон не отключен, рисуем градиентный фон и партиклы
+    if not var_0_86.no_bg.v then
+        local color_dark = getColor("Button", 0.3):u32()
+        local color_light = getColor("Button", 0):u32()
+        
+        if win_size.x > 0 and win_size.y > 0 then
+            -- Основной фон с прозрачностью
+            draw_list:AddRectFilled(
+                win_pos, 
+                var_0_8.ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y), 
+                getColor("WindowBg", 0.85):u32(), 
+                10
+            )
+            
+            -- Красивый угловой градиент (как в reconStatsDraw)
+            draw_list:AddRectFilledMultiColor(
+                win_pos,
+                var_0_8.ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y),
+                color_light,
+                color_dark,
+                color_dark,
+                color_light,
+                10
+            )
+            
+            -- Тонкая обводка только внутри (для красоты)
+            draw_list:AddRect(
+                win_pos,
+                var_0_8.ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y),
+                getColor("Border", 0.15):u32(),
+                10,
+                var_0_8.DrawCornerFlags.All,
+                1.0
+            )
+            
+            -- Партиклы в фоне (если включены в настройках)
+            if var_0_113 and var_0_113.pt and var_0_113.pt.state and var_0_113.pt.state.v then
+                local particles_size = var_0_8.ImVec2(win_size.x, win_size.y)
+                local icon_name = var_0_113.pt.icon or "SNOWFLAKE"
+                local particles_icon = fa[icon_name]
+                
+                if particles_icon then
+                    local ok, err = pcall(function()
+                        particles_bg(
+                            particles_size,
+                            var_0_113.pt.speed.v or 1,
+                            var_0_113.pt.count.v or 25,  -- Меньше частиц для компактного окна
+                            particles_icon,
+                            var_0_113.pt.dir.v or 0,
+                            255, 255, 255,
+                            255 * (var_0_113.pt.alpha.v or 0.15)  -- Более прозрачные частицы
+                        )
+                    end)
+                end
+            end
+        end
+    end
 
-	var_0_8.Begin("##KeysLogger", _, 12361)
+    -- Оригинальный код с отображением клавиш и джойстика
+    if var_0_86.syncType ~= "pass" then
+        if recIP.stInfo.game.v == 2 then
+            var_0_8.AddCursorPos(5, 0)
+            var_0_8.Dummy(var_0_8.ImVec2(65, 65))
 
-	if var_0_86.syncType ~= "pass" then
-		if recIP.stInfo.game.v == 2 then
-			var_0_8.AddCursorPos(5, 0)
-			var_0_8.Dummy(var_0_8.ImVec2(65, 65))
+            local draw_list_joystick = var_0_8.GetWindowDrawList()
+            local rect_min = var_0_8.GetItemRectMin()
+            local radius = 30
+            local joystick_radius = 10
+            local center = var_0_8.ImVec2(rect_min.x + 32.5, rect_min.y + 32.5)
+            local color_active = var_0_8.GetStyle().Colors[var_0_8.Col.ButtonActive]
+            local color_bg = var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(color_active.x, color_active.y, color_active.z, 0.15))
+            local color_border = var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(color_active.x, color_active.y, color_active.z, 0.4))
 
-			local var_540_2 = var_0_8.GetWindowDrawList()
-			local var_540_3 = var_0_8.GetItemRectMin()
-			local var_540_4 = 30
-			local var_540_5 = 10
-			local var_540_6 = var_0_8.ImVec2(var_540_3.x + 32.5, var_540_3.y + 32.5)
-			local var_540_7 = var_0_8.GetStyle().Colors[var_0_8.Col.ButtonActive]
-			local var_540_8 = var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(var_540_7.x, var_540_7.y, var_540_7.z, 0.3))
-			local var_540_9 = var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(var_540_7.x, var_540_7.y, var_540_7.z, var_540_7.w))
+            -- Фон джойстика с градиентом
+            draw_list_joystick:AddCircleFilled(center, radius, color_bg, 48)
+            draw_list_joystick:AddCircle(center, radius, color_border, 48, 1.5)
 
-			var_540_2:AddCircleFilled(var_540_6, var_540_4, var_540_8, 48)
-			var_540_2:AddCircle(var_540_6, var_540_4, var_540_9, 48, 1)
+            local old_x = var_0_86.joystick.old.x / 100 * (radius - joystick_radius / 2)
+            local new_x = var_0_86.joystick.new.x / 100 * (radius - joystick_radius / 2)
+            local old_y = var_0_86.joystick.old.y / 100 * (radius - joystick_radius / 2)
+            local new_y = var_0_86.joystick.new.y / 100 * (radius - joystick_radius / 2)
+            local current_x = Ease(old_x, new_x, var_0_86.joystick.timer, 0.1)
+            local current_y = Ease(old_y, new_y, var_0_86.joystick.timer, 0.1)
 
-			local var_540_10 = var_0_86.joystick.old.x / 100 * (var_540_4 - var_540_5 / 2)
-			local var_540_11 = var_0_86.joystick.new.x / 100 * (var_540_4 - var_540_5 / 2)
-			local var_540_12 = var_0_86.joystick.old.y / 100 * (var_540_4 - var_540_5 / 2)
-			local var_540_13 = var_0_86.joystick.new.y / 100 * (var_540_4 - var_540_5 / 2)
-			local var_540_14 = Ease(var_540_10, var_540_11, var_0_86.joystick.timer, 0.1)
-			local var_540_15 = Ease(var_540_12, var_540_13, var_0_86.joystick.timer, 0.1)
+            -- Сам джойстик с градиентом
+            draw_list_joystick:AddCircleFilled(
+                var_0_8.ImVec2(center.x + current_x, center.y + current_y), 
+                joystick_radius, 
+                var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(color_active.x, color_active.y, color_active.z, 0.8)), 
+                16
+            )
+            
+            -- Легкая обводка джойстика
+            draw_list_joystick:AddCircle(
+                var_0_8.ImVec2(center.x + current_x, center.y + current_y), 
+                joystick_radius, 
+                var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(1, 1, 1, 0.3)), 
+                16, 
+                1.0
+            )
+        else
+            var_0_8.BeginGroup()
+            var_0_8.SetCursorPosX(45)
+            KeyCap("W", var_0_8.ImVec2(30, 30))
+            KeyCap("A", var_0_8.ImVec2(30, 30))
+            var_0_8.SameLine()
+            KeyCap("S", var_0_8.ImVec2(30, 30))
+            var_0_8.SameLine()
+            KeyCap("D", var_0_8.ImVec2(30, 30))
+            var_0_8.EndGroup()
+        end
 
-			var_540_2:AddCircleFilled(var_0_8.ImVec2(var_540_6.x + var_540_14, var_540_6.y + var_540_15), var_540_5, var_540_9, 16)
-		else
-			var_0_8.BeginGroup()
-			var_0_8.SetCursorPosX(45)
-			KeyCap("W", var_0_8.ImVec2(30, 30))
-			KeyCap("A", var_0_8.ImVec2(30, 30))
-			var_0_8.SameLine()
-			KeyCap("S", var_0_8.ImVec2(30, 30))
-			var_0_8.SameLine()
-			KeyCap("D", var_0_8.ImVec2(30, 30))
-			var_0_8.EndGroup()
-		end
+        var_0_8.SameLine(nil, 20)
+    end
 
-		var_0_8.SameLine(nil, 20)
-	end
+    -- Остальной код клавиш остается без изменений
+    if var_0_86.syncType == "onFoot" then
+        var_0_8.BeginGroup()
+        KeyCap("Sprint", var_0_8.ImVec2(75, 30))
+        var_0_8.SameLine()
+        KeyCap("Alt", var_0_8.ImVec2(55, 30))
+        KeyCap("Jump", var_0_8.ImVec2(135, 30))
+        var_0_8.EndGroup()
+        var_0_8.SameLine()
+        var_0_8.BeginGroup()
+        KeyCap("C", var_0_8.ImVec2(30, 30))
+        var_0_8.SameLine()
+        KeyCap("F", var_0_8.ImVec2(30, 30))
+        var_0_8.SameLine()
+        KeyCap("H", var_0_8.ImVec2(30, 30))
+        KeyCap("LB", var_0_8.ImVec2(30, 30))
+        var_0_8.SameLine()
+        KeyCap("RB", var_0_8.ImVec2(30, 30))
+        var_0_8.SameLine()
+        KeyCap("N", var_0_8.ImVec2(30, 30))
+        var_0_8.EndGroup()
+    elseif var_0_86.syncType == "inCar" then
+        if recIP.stInfo.game.v == 2 then
+            var_0_8.BeginGroup()
+            KeyCap("W", var_0_8.ImVec2(30, 30))
+            KeyCap("S", var_0_8.ImVec2(30, 30))
+            var_0_8.EndGroup()
+            var_0_8.SameLine()
+        end
 
-	if var_0_86.syncType == "onFoot" then
-		var_0_8.BeginGroup()
-		KeyCap("Sprint", var_0_8.ImVec2(75, 30))
-		var_0_8.SameLine()
-		KeyCap("Alt", var_0_8.ImVec2(55, 30))
-		KeyCap("Jump", var_0_8.ImVec2(135, 30))
-		var_0_8.EndGroup()
-		var_0_8.SameLine()
-		var_0_8.BeginGroup()
-		KeyCap("C", var_0_8.ImVec2(30, 30))
-		var_0_8.SameLine()
-		KeyCap("F", var_0_8.ImVec2(30, 30))
-		var_0_8.SameLine()
-		KeyCap("H", var_0_8.ImVec2(30, 30))
-		KeyCap("LB", var_0_8.ImVec2(30, 30))
-		var_0_8.SameLine()
-		KeyCap("RB", var_0_8.ImVec2(30, 30))
-		var_0_8.SameLine()
-		KeyCap("N", var_0_8.ImVec2(30, 30))
-		var_0_8.EndGroup()
-	elseif var_0_86.syncType == "inCar" then
-		if recIP.stInfo.game.v == 2 then
-			var_0_8.BeginGroup()
-			KeyCap("W", var_0_8.ImVec2(30, 30))
-			KeyCap("S", var_0_8.ImVec2(30, 30))
-			var_0_8.EndGroup()
-			var_0_8.SameLine()
-		end
+        var_0_8.BeginGroup()
+        KeyCap("Ctrl", var_0_8.ImVec2(65, 30))
+        var_0_8.SameLine()
+        KeyCap("Alt", var_0_8.ImVec2(65, 30))
+        KeyCap("Jump", var_0_8.ImVec2(135, 30))
+        var_0_8.EndGroup()
 
-		var_0_8.BeginGroup()
-		KeyCap("Ctrl", var_0_8.ImVec2(65, 30))
-		var_0_8.SameLine()
-		KeyCap("Alt", var_0_8.ImVec2(65, 30))
-		KeyCap("Jump", var_0_8.ImVec2(135, 30))
-		var_0_8.EndGroup()
+        if recIP.stInfo.game.v ~= 2 then
+            var_0_8.SameLine()
+            var_0_8.BeginGroup()
+            KeyCap("Up", var_0_8.ImVec2(50, 30))
+            KeyCap("Down", var_0_8.ImVec2(50, 30))
+            var_0_8.EndGroup()
+        end
 
-		if recIP.stInfo.game.v ~= 2 then
-			var_0_8.SameLine()
-			var_0_8.BeginGroup()
-			KeyCap("Up", var_0_8.ImVec2(50, 30))
-			KeyCap("Down", var_0_8.ImVec2(50, 30))
-			var_0_8.EndGroup()
-		end
+        var_0_8.SameLine()
+        var_0_8.BeginGroup()
+        KeyCap("N", var_0_8.ImVec2(30, 30))
+        var_0_8.SameLine()
+        KeyCap("F", var_0_8.ImVec2(30, 30))
+        KeyCap("Q", var_0_8.ImVec2(30, 30))
+        var_0_8.SameLine()
+        KeyCap("E", var_0_8.ImVec2(30, 30))
+        var_0_8.EndGroup()
+        var_0_8.SameLine()
+        KeyCap("H", var_0_8.ImVec2(30, 65))
+    elseif var_0_86.syncType == "pass" then
+        var_0_8.BeginGroup()
+        KeyCap("Ctrl", var_0_8.ImVec2(65, 30))
+        var_0_8.SameLine()
+        KeyCap("Alt", var_0_8.ImVec2(65, 30))
+        KeyCap("Jump", var_0_8.ImVec2(135, 30))
+        var_0_8.EndGroup()
+        var_0_8.SameLine()
+        var_0_8.BeginGroup()
+        KeyCap("Q", var_0_8.ImVec2(30, 30))
+        KeyCap("E", var_0_8.ImVec2(30, 30))
+        var_0_8.EndGroup()
+        var_0_8.SameLine()
+        KeyCap("H", var_0_8.ImVec2(30, 65))
+    end
 
-		var_0_8.SameLine()
-		var_0_8.BeginGroup()
-		KeyCap("N", var_0_8.ImVec2(30, 30))
-		var_0_8.SameLine()
-		KeyCap("F", var_0_8.ImVec2(30, 30))
-		KeyCap("Q", var_0_8.ImVec2(30, 30))
-		var_0_8.SameLine()
-		KeyCap("E", var_0_8.ImVec2(30, 30))
-		var_0_8.EndGroup()
-		var_0_8.SameLine()
-		KeyCap("H", var_0_8.ImVec2(30, 65))
-	elseif var_0_86.syncType == "pass" then
-		var_0_8.BeginGroup()
-		KeyCap("Ctrl", var_0_8.ImVec2(65, 30))
-		var_0_8.SameLine()
-		KeyCap("Alt", var_0_8.ImVec2(65, 30))
-		KeyCap("Jump", var_0_8.ImVec2(135, 30))
-		var_0_8.EndGroup()
-		var_0_8.SameLine()
-		var_0_8.BeginGroup()
-		KeyCap("Q", var_0_8.ImVec2(30, 30))
-		KeyCap("E", var_0_8.ImVec2(30, 30))
-		var_0_8.EndGroup()
-		var_0_8.SameLine()
-		KeyCap("H", var_0_8.ImVec2(30, 65))
-	end
-
-	var_0_8.End()
-	var_0_8.PopStyleColor()
-	var_0_8.PopStyleVar(3)
+    var_0_8.End()
+    var_0_8.PopStyleColor()
+    var_0_8.PopStyleVar(4)
 end
 
 function KeyCap(arg_541_0, arg_541_1)
