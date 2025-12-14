@@ -21863,17 +21863,19 @@ function sampInfoDraw()
 		end
 
 		if var_0_8.MenuItem(var_0_20("Машины")) then
-			var_0_105.sel = 5
-			var_0_105.isel = 0
-			var_0_105.model = nil
-			var_0_105.search.v = ""
+			--var_0_105.sel = 5
+			--var_0_105.isel = 0
+			--var_0_105.model = nil
+			--var_0_105.search.v = ""
+			push(3, "Раздел в разработке!")
 		end
 
 		if var_0_8.MenuItem(var_0_20("Скины")) then
-			var_0_105.sel = 6
-			var_0_105.isel = 0
-			var_0_105.model = nil
-			var_0_105.search.v = ""
+			--var_0_105.sel = 6
+			--var_0_105.isel = 0
+			--var_0_105.model = nil
+			--var_0_105.search.v = ""
+			push(3, "Раздел в разработке!")
 		end
 
 		if var_0_8.MenuItem(var_0_20("Оружие")) then
@@ -25522,7 +25524,7 @@ function authRender()
 					win.main.v = true
 					net.auth.win.v = false
 					net.auth.closing = false
-					push(2, "Успешная авторизация!", 13387077)
+					push(2, "Успешная авторизация!", 1)
 				end)
 			end
 		end
