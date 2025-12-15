@@ -13560,7 +13560,7 @@ var_0_69.set = {
 		accept = { show = true, color = var_0_8.ImFloat4(1, 0, 0, 1), text = var_0_8.ImBuffer(var_0_20("[Без аццепта]"), 256) },
 		tools = { show = true, color_0 = var_0_8.ImFloat4(1, 0, 0, 1), color_1 = var_0_8.ImFloat4(0, 1, 0, 1) }
 	},
-	line_format = var_0_8.ImBuffer(var_0_20("{tools:| }{acolor}{nick}[{id}]{spec: - /re %s]}{afk: - AFK: %s}{rep: - Rep: %s} {note}"), 256),
+	line_format = var_0_8.ImBuffer(var_0_20("{tools:| }{acolor}{nick}[{id}]{spec: - /re %s]}{afk: - AFK: %s}{rep: - Rep: %s} {active: - Актив: %s} {note}"), 256),
 	bool_format = var_0_8.ImBool(false),
 	time_format = var_0_8.ImBool(true),
 	spec_hide = var_0_8.ImBool(false),
@@ -30870,8 +30870,9 @@ end
 		var_508_0.info.rep.show = not var_508_0.info.rep.show
 	end
 
-	if AdminSettingGroup(var_508_0.info.active.show, var_508_0.info.active.color, "Актив", nil, var_508_0.bool_format.v) == 1 then
-		var_508_0.info.active.show = not var_508_0.info.active.show
+	if AdminSettingGroup(var_508_0.info.active.show.v, var_508_0.info.active.color, "Актив", nil, var_508_0.bool_format.v) == 1 then
+		var_508_0.info.active.show.v = not var_508_0.info.active.show.v
+		save_dirty = true
 	end
 
 	var_0_8.SameLine()
@@ -48861,11 +48862,13 @@ function admins_render()
                         adm.rep = tonumber(adm.rep) or 0
                         adm.afk = tonumber(adm.afk) or 0
                         adm.idle = tonumber(adm.idle) or 0
+						adm.active = tonumber(adm.active) or 0
                         local fmt = base_fmt
                         if not fmt:find("{afk:") then fmt = fmt .. "{afk:- AFK %s}" end
                         if not fmt:find("{rep:") then fmt = fmt .. "{rep:- Rep %s}" end
                         if cfg.info and cfg.info.afk and not cfg.info.afk.show then fmt = fmt:gsub("{afk:[^}]*}", "") end
                         if cfg.info and cfg.info.rep and not cfg.info.rep.show then fmt = fmt:gsub("{rep:[^}]*}", "") end
+						if cfg.info and cfg.info.active and not cfg.info.active.show.v then fmt = fmt:gsub("{active:[^}]*}", "") end
                         local line = replaceTagsAdm(adm, fmt)
                         add_line(line, adm_col(adm, col), { type = "admin", id = adm.id })
                     end
