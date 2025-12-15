@@ -8,11 +8,11 @@ end
 
 script_name("Primorskiy Tools")
 script_author("Arizona Games")
-script_version_number(8)
+script_version_number(9)
 
 BETA = true
 
-script_version(("1.3.5 %s"):format(BETA and "Beta" or "Release"))
+script_version(("1.3.6 %s"):format(BETA and "Beta" or "Release"))
 script_url("http://techhelper.fun/")
 script_properties("work-in-pause")
 require("sampfuncs")
@@ -22636,7 +22636,7 @@ end
 function getipDraw()
 	local var_392_0, var_392_1 = getScreenResolution()
 
-	var_0_8.PushStyleVar(var_0_8.StyleVar.WindowMinSize, var_0_8.ImVec2(665, 250))
+	var_0_8.PushStyleVar(var_0_8.StyleVar.WindowMinSize, var_0_8.ImVec2(750, 250))
 	var_0_8.SetNextWindowPos(var_0_8.ImVec2(var_392_0 / 2, var_392_1 / 2), var_0_8.Cond.Appearing, var_0_8.ImVec2(0.5, 0.5))
 	var_0_8.Begin("##GetIP_Window", _, 195)
 
@@ -22816,7 +22816,8 @@ function getipDraw()
 		var_0_8.Separator()
 		var_0_8.Spacing()
 
-		local var_392_22 = (var_392_4 * 2 - var_0_8.GetStyle().WindowPadding.x * 2 - 6) / 3
+		-- Измененная ширина для 4 кнопок вместо 3
+		local var_392_22 = (var_392_4 * 2 - var_0_8.GetStyle().WindowPadding.x * 2 - 9) / 4
 
 		if var_0_8.DarkButton(var_0_20("Вывести в /a"), var_0_8.ImVec2(var_392_22, 0)) then
 			local var_392_23 = var_0_104.data[1].ip:gsub("(%d+%.%d+)%.%d+%.%d+", "%1.**.**")
@@ -22849,6 +22850,17 @@ function getipDraw()
 				sampSendChat("/acceptadmin " .. var_392_27.id)
 			else
 				push(0, "Игрок не администратор!")
+			end
+		end
+
+		var_0_8.SameLine(nil, 3)
+
+		if var_0_8.DarkButton(var_0_20("Снять ограничение"), var_0_8.ImVec2(var_392_22, 0)) then
+			local playerId = getIdByNick(var_0_104.nick)
+			if playerId then
+				sampSendChat("/accepttrade " .. playerId)
+			else
+				push(0, "Игрок не в сети!")
 			end
 		end
 
@@ -25381,7 +25393,7 @@ function authRender()
 			-- Сброс статуса только один раз
 			if not net.auth.timeout_triggered then
 				net.auth.status = AUTH_NONE
-				net.auth.error = "Перезапустите скрипт. Авторизация успешна."
+				scr:reload()
 				net.auth.check_start_time = nil
 				net.auth.timeout_triggered = true
 			end
@@ -34707,6 +34719,38 @@ end
 function reportDraw()
     local var_527_0, var_527_1 = getScreenResolution()
 
+    if var_0_66 and var_0_66.text and (var_0_66.bufans.v == "" or var_0_20:decode(var_0_66.bufans.v):isSpace()) then
+        local text_lower = var_0_66.text:lower()
+        
+        local house_keywords = {
+            "найти дом", "где дом", "дом найти", "найти домик",
+            "где домик", "помогите найти дом", "как найти дом",
+            "поиск дома", "жилье найти", "где жилье", "найти жилье",
+            "дом купить", "купить дом", "приобрести дом", "дом приобрести",
+            "где купить дом", "как купить дом", "дом как найти",
+            "где можно найти дом", "помогите с домом", "с домом помочь",
+            "не могу найти дом", "не нахожу дом", "дом не нахожу"
+        }
+        
+        local is_house_report = false
+        
+        for _, keyword in ipairs(house_keywords) do
+            if text_lower:find(keyword, 1, true) then
+                is_house_report = true
+                break
+            end
+        end
+        
+        if is_house_report then
+            local auto_answer = string.format("Здравствуйте, уважаемый игрок - %s, /findihouse %d", 
+                var_0_66.nick, var_0_66.id)
+            
+            var_0_66.bufans.v = var_0_20(auto_answer)
+            
+            var_0_66.preview = var_0_20(auto_answer)
+        end
+    end
+
     var_0_8.PushStyleVar(var_0_8.StyleVar.WindowPadding, var_0_8.ImVec2(5, 5))
     var_0_8.PushStyleVar(var_0_8.StyleVar.WindowRounding, 6)
     var_0_8.PushStyleColor(var_0_8.Col.TitleBg, var_0_8.GetStyle().Colors[var_0_8.Col.Button])
@@ -34717,21 +34761,18 @@ function reportDraw()
     local win_size = var_0_8.GetWindowSize()
     local draw_list = var_0_8.GetWindowDrawList()
 
-    -- ПОЛНЫЙ ГРАДИЕНТНЫЙ ФОН НА ВЕСЬ РЕПОРТ
     local color_dark = getColor("Button", 0.3):u32()
     local color_light = getColor("Button", 0):u32()
 
-    -- Градиент слева направо как в сайдбаре
     draw_list:AddRectFilledMultiColor(
         win_pos,
         var_0_8.ImVec2(win_pos.x + win_size.x, win_pos.y + win_size.y),
-        color_light,      -- Левый верхний
-        color_dark,       -- Правый верхний
-        color_dark,       -- Правый нижний
-        color_light       -- Левый нижний
+        color_light,
+        color_dark,
+        color_dark,
+        color_light
     )
 
-    -- ПАРТИКЛЫ НА ВЕСЬ ФОН
     if var_0_113.pt.state.v then
         local particles_size = var_0_8.ImVec2(win_size.x, win_size.y)
         local particles_icon = fa["" .. var_0_113.pt.icon]
@@ -34747,22 +34788,18 @@ function reportDraw()
         )
     end
 
-    -- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ КНОПОК С ГРАДИЕНТОМ
     local button_counter = 0
     local function GradientButton(label, size)
         button_counter = button_counter + 1
         local button_id = "##gradient_btn_" .. button_counter
         
-        -- Получаем уникальные цвета для градиента
         local btn_color_left = getColor("Button", 0.1):u32()
         local btn_color_right = getColor("Button", 0.4):u32()
         local border_color = getColor("ButtonActive", 0.5):u32()
         
-        -- Получаем текущую позицию курсора
         local cursor_pos = var_0_8.GetCursorPos()
         local screen_pos = var_0_8.GetCursorScreenPos()
         
-        -- Рисуем градиентный фон кнопки ПЕРЕД созданием кнопки
         draw_list:AddRectFilledMultiColor(
             screen_pos,
             var_0_8.ImVec2(screen_pos.x + size.x, screen_pos.y + size.y),
@@ -34770,19 +34807,17 @@ function reportDraw()
             btn_color_right,
             btn_color_right,
             btn_color_left,
-            5  -- rounding
+            5
         )
         
-        -- Добавляем рамку
         draw_list:AddRect(
             screen_pos,
             var_0_8.ImVec2(screen_pos.x + size.x, screen_pos.y + size.y),
             border_color,
-            5,  -- rounding
-            2   -- толщина
+            5,
+            2
         )
         
-        -- Используем стандартную кнопку ImGui с прозрачным фоном
         var_0_8.PushStyleColor(var_0_8.Col.Button, var_0_8.ImVec4(0, 0, 0, 0))
         var_0_8.PushStyleColor(var_0_8.Col.ButtonHovered, var_0_8.ImVec4(1, 1, 1, 0.1))
         var_0_8.PushStyleColor(var_0_8.Col.ButtonActive, var_0_8.ImVec4(1, 1, 1, 0.2))
@@ -34795,7 +34830,6 @@ function reportDraw()
         return clicked
     end
 
-    -- ОРИГИНАЛЬНЫЙ КОД (возвращаем оригинальные кнопки с небольшими изменениями)
     local var_527_2 = var_0_8.GetWindowPos()
     local var_527_3 = var_0_8.GetStyle().Colors[var_0_8.Col.Button]
 
@@ -34945,7 +34979,6 @@ function reportDraw()
     var_0_8.PopItemWidth()
     var_0_8.SameLine()
 
-    -- Кнопка перевода (возвращаем оригинальную)
     if var_0_8.Button(fa.ARROW_DOWN_A_Z .. "##trans_2", var_0_8.ImVec2(30, 0)) then
         local var_527_10 = var_0_20:decode(var_0_66.bufans.v)
         var_0_66.bufans.v = var_0_20(var_527_10:switchLayout())
@@ -34966,9 +34999,6 @@ function reportDraw()
 
     var_0_8.Spacing()
 
-    -- КНОПКИ С ГРАДИЕНТОМ (используем исправленную функцию)
-    
-    -- Кнопка "Помочь игроку"
     if GradientButton(var_0_20("Помочь игроку"), var_0_8.ImVec2(195, 24)) or isReportHotKeyPressed(VK_1) then
         var_0_66.bufans.v = var_0_20(var_0_66.main[1])
         sendReport(var_0_66, true, var_0_66.nick)
@@ -34980,7 +35010,6 @@ function reportDraw()
 
     var_0_8.SameLine()
 
-    -- Кнопка "Следить за нарушителем"
     if GradientButton(var_0_20("Следить за нарушителем"), var_0_8.ImVec2(195, 24)) or isReportHotKeyPressed(VK_2) then
         if #var_0_66.queue > 0 then
             local var_527_12
@@ -35016,7 +35045,6 @@ function reportDraw()
 
     var_0_8.SameLine()
 
-    -- Кнопка "Передать в /a"
     if GradientButton(var_0_20("Передать в /a"), var_0_8.ImVec2(195, 24)) or isReportHotKeyPressed(VK_3) then
         var_0_66.bufans.v = var_0_20(var_0_66.main[3])
         sendReport(var_0_66)
@@ -35036,7 +35064,6 @@ function reportDraw()
         var_0_66.preview = var_0_20(var_0_66.main[3])
     end
 
-    -- Остальные кнопки ответов (возвращаем оригинальные для стабильности)
     for iter_527_8, iter_527_9 in ipairs(var_0_66.otvet) do
         if var_0_66.butcount.v == 0 then
             local var_527_15 = 195
@@ -35048,7 +35075,6 @@ function reportDraw()
                 end
             end
 
-            -- Используем оригинальные кнопки для стабильности
             if GradientButton(var_0_20(iter_527_9.b), var_0_8.ImVec2(var_527_15, 24)) then
                 var_0_66.bufans.v = var_0_20(iter_527_9.t)
                 if iter_527_9.a then
@@ -35114,7 +35140,6 @@ function reportDraw()
     var_0_8.PushFont(fontC[21])
     var_0_8.SetCursorPosY(3)
 
-    -- Кнопки в нижней панели (возвращаем оригинальные для стабильности)
     if var_0_20:decode(var_0_66.bufans.v):isSpace() then
         var_0_8.PushStyleColor(var_0_8.Col.Button, var_0_8.ImVec4(0.2, 0.2, 0.2, 0.2))
         var_0_8.PushStyleColor(var_0_8.Col.ButtonHovered, var_0_8.ImVec4(0.2, 0.2, 0.2, 0.2))
@@ -35138,7 +35163,6 @@ function reportDraw()
     var_0_8.SetCursorPosY(2)
     var_0_8.PushStyleVar(var_0_8.StyleVar.FrameRounding, 15)
 
-    -- Остальной код без изменений...
     local var_527_17 = 28
 
     if roundButton(fa.GEARS, var_527_17) then
@@ -35196,7 +35220,6 @@ function reportDraw()
     SlowShowHelp(var_0_20("Выдать мут репорта"), 0)
     var_0_8.PopStyleVar(1)
 
-    -- Остальной код popup'ов без изменений...
     if var_0_8.BeginPopup("GiveMuteReport") then
         var_0_8.Text(var_0_20("Выдать мут репорта игроку"))
         var_0_8.AddCursorPos(0, 5)
@@ -37123,8 +37146,8 @@ function keysLogger()
     local sx, sy = getScreenResolution()
     
     var_0_8.SetNextWindowPos(var_0_8.ImVec2(var_0_86.pos[1], var_0_86.pos[2]), var_0_8.Cond.Always, var_0_8.ImVec2(var_0_21.condX[var_0_86.align], 1))
-    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowMinSize, var_0_8.ImVec2(200, 40))
-    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowPadding, var_0_8.ImVec2(10, 10))
+    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowMinSize, var_0_8.ImVec2(370, 40))
+    var_0_8.PushStyleVar(var_0_8.StyleVar.WindowPadding, var_0_8.ImVec2(3, 10))
     var_0_8.PushStyleVar(var_0_8.StyleVar.WindowRounding, 10)
     var_0_8.PushStyleVar(var_0_8.StyleVar.FrameRounding, 8)
 
@@ -37199,7 +37222,7 @@ function keysLogger()
     -- Оригинальный код с отображением клавиш и джойстика
     if var_0_86.syncType ~= "pass" then
         if recIP.stInfo.game.v == 2 then
-            var_0_8.AddCursorPos(5, 0)
+            var_0_8.AddCursorPos(20, 0)
             var_0_8.Dummy(var_0_8.ImVec2(65, 65))
 
             local draw_list_joystick = var_0_8.GetWindowDrawList()
@@ -37240,7 +37263,7 @@ function keysLogger()
             )
         else
             var_0_8.BeginGroup()
-            var_0_8.SetCursorPosX(45)
+            var_0_8.SetCursorPosX(38)
             KeyCap("W", var_0_8.ImVec2(30, 30))
             KeyCap("A", var_0_8.ImVec2(30, 30))
             var_0_8.SameLine()
