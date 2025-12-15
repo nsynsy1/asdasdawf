@@ -21822,7 +21822,7 @@ function netlogRender()
 					var_0_8.PopStyleColor()
 					
 					var_0_8.Spacing()
-					if var_0_8.Button("Копировать ответ##copy_" .. iter_379_0, var_0_8.ImVec2(-1, 0)) then
+					if var_0_8.Button("Copy", var_0_8.ImVec2(-1, 0)) then
 						var_0_8.SetClipboardText(var_0_20(iter_379_1.code))
 						push(2, "Ответ скопирован в буфер обмена!")
 					end
@@ -24558,7 +24558,7 @@ function rulesRender()
 	SlowShowHelp(var_0_20("Открыть дирректорию, где хранится файл с\nправилами - {FFFF80}rules.json{STANDART}. Вы можете поделиться этим\nфайлом с другими администраторами или заменить свой на новый"))
 	var_0_8.SameLine(nil, 15)
 	var_0_8.PushFont(fontC[20])
-	if var_0_8.IconButton(fa.XMARK .. "##RulesCloseHeader") then
+	if var_0_8.IconButton(fa.XMARK .. " ") then
 		var_408_close_req = true
 	end
 	var_0_8.PopFont()
@@ -25323,7 +25323,7 @@ function mainRender()
 	var_0_8.SetNextWindowPos(var_0_8.ImVec2(var_417_0 / 2, var_417_1 / 2), var_0_8.Cond.FirstUseEver, var_0_8.ImVec2(0.5, 0.5))
 	if not var_0_21.start_notified then
 		var_0_21.start_notified = true
-		var_0_84.show("{90FF90}Создано с любовью Primorskiy Tools!{DEF} E.Zalesков / N.Shtibert")
+		--print("Создано с любовью Primorskiy Tools!{DEF} E.Zalesков / N.Shtibert")
 	end
 
 	if not win.main.v then
@@ -25371,11 +25371,48 @@ end
 function authRender()
 	local status = net.auth.status or AUTH_NONE
 	local win_height = 320
+
+	-- ДОБАВЛЕНО: Проверка таймаута для статуса AUTH_AWAIT
+	if status == AUTH_AWAIT and net.auth.check_start_time then
+		local check_timeout = 5 -- УВЕЛИЧЕНО до 30 секунд
+		local elapsed = os.clock() - net.auth.check_start_time
+		
+		if elapsed > check_timeout then
+			-- Сброс статуса только один раз
+			if not net.auth.timeout_triggered then
+				net.auth.status = AUTH_NONE
+				net.auth.error = "Перезапустите скрипт. Авторизация успешна."
+				net.auth.check_start_time = nil
+				net.auth.timeout_triggered = true
+			end
+		end
+	elseif status ~= AUTH_AWAIT then
+		net.auth.timeout_triggered = false -- Сброс флага при смене статуса
+	end
+
 	if status == AUTH_OK then
-		win_height = 420
+		win_height = 180
 	elseif net.auth.error then
 		win_height = 360
 	end
+
+	-- === ПЛАВНОЕ ИСЧЕЗНОВЕНИЕ ПРИ AUTH_OK ===
+	local window_alpha = 1.0
+	local is_fading = false
+	if status == AUTH_OK and net.auth.auth_close_timer then
+		local fade_progress = (os.clock() - net.auth.auth_close_timer) / 0.3
+		window_alpha = 1.0 - math.min(fade_progress, 1.0)
+		if window_alpha <= 0 then
+			net.auth.win.v = false
+			net.auth.auth_close_timer = nil
+			net.auth.check_start_time = nil
+			net.auth.timeout_triggered = false
+			return
+		end
+		var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, window_alpha)
+		is_fading = true
+	end
+	-- =========================================
 
 	local var_420_0 = var_0_8.ImVec2(480, win_height)
 	local var_420_1, var_420_2 = getScreenResolution()
@@ -25390,6 +25427,9 @@ function authRender()
 	if not auth_open then
 		var_0_8.End()
 		var_0_8.PopStyleVar(3)
+		if is_fading then
+			var_0_8.PopStyleVar()
+		end
 		return
 	end
 
@@ -25398,6 +25438,7 @@ function authRender()
 	
 	var_0_8.BeginGroup()
 	var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Авторизация по токену")).x) / 2)
+	var_0_8.SetCursorPosX(var_0_8.GetCursorPosX() + 15)
 	var_0_8.PushFont(fontC[24])
 	var_0_8.Text(var_0_20("Авторизация по токену"))
 	var_0_8.PopFont()
@@ -25408,144 +25449,119 @@ function authRender()
 	var_0_8.Spacing()
 
 	if status == AUTH_OK then
-		local elapsed = os.clock() - net.auth.auth_timer
-		local avatar_size = 80
-		local avatar_alpha = math.min(elapsed / 0.5, 1.0)
-		local name_alpha = math.min(math.max(0, elapsed - 0.2) / 0.4, 1.0)
-		local welcome_alpha = math.min(math.max(0, elapsed - 0.4) / 0.4, 1.0)
-		
+		local elapsed = os.clock() - (net.auth.auth_timer or 0)
+		local avatar_size = 60
+		local text_spacing = 12
+
+		-- Анимации появления работают ТОЛЬКО если НЕ идёт фейд
+		local draw_appear = not net.auth.auth_close_timer
+
+		local avatar_alpha = window_alpha
+		local name_alpha = window_alpha
+		local welcome_alpha = window_alpha
+
+		if draw_appear then
+			avatar_alpha = math.min(elapsed / 0.5, 1.0) * window_alpha
+			name_alpha = math.min(math.max(0, elapsed - 0.2) / 0.4, 1.0) * window_alpha
+			welcome_alpha = math.min(math.max(0, elapsed - 0.4) / 0.4, 1.0) * window_alpha
+		end
+
 		var_0_8.BeginGroup()
-		var_0_8.SetCursorPosX((content_w - avatar_size) / 2)
-		
-		if avatar_alpha < 1.0 then
-			var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, avatar_alpha)
-		end
-		
-		if var_0_48.avatar then
-			var_0_8.ImageRounded(var_0_48.avatar, avatar_size)
-		else
-			var_0_8.BeginGroup()
-			local bg_col = getColor("Button"):u32()
-			var_0_8.GetWindowDrawList():AddRectFilled(var_0_8.GetItemRectMin(), var_0_8.ImVec2(var_0_8.GetItemRectMin().x + avatar_size, var_0_8.GetItemRectMin().y + avatar_size), bg_col, 12)
-			var_0_8.GetWindowDrawList():AddRect(var_0_8.GetItemRectMin(), var_0_8.ImVec2(var_0_8.GetItemRectMin().x + avatar_size, var_0_8.GetItemRectMin().y + avatar_size), var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(1, 1, 1, avatar_alpha)), 12, 0, 2)
+		local name_text = (type(net.auth.user.first_name) == "string" and net.auth.user.first_name ~= "") and net.auth.user.first_name or net.auth.user.tag
+		local name_width = name_alpha > 0 and var_0_8.CalcTextSize(var_0_20(name_text)).x or 0
+		local total_width = avatar_size + text_spacing + name_width
+		var_0_8.SetCursorPosX((content_w - total_width) / 2)
+
+		-- КЛЮЧЕВОЙ ФИКС: если идёт фейд — НЕ рисуем аватар и рамку вообще!
+		if net.auth.auth_close_timer then
+			-- Просто оставляем пустое место (но с правильным размером)
 			var_0_8.Dummy(var_0_8.ImVec2(avatar_size, avatar_size))
-			var_0_8.SameLine()
-			var_0_8.SetCursorPosY(var_0_8.GetCursorPosY() + avatar_size / 2 - 10)
-			var_0_8.PushFont(fontC[20])
-			var_0_8.Text(fa.USER)
-			var_0_8.PopFont()
-			var_0_8.EndGroup()
-		end
-		
-		if avatar_alpha < 1.0 then
-			var_0_8.PopStyleVar()
-		end
-		
-		var_0_8.EndGroup()
-		
-		var_0_8.Spacing()
-		
-		if name_alpha > 0 then
-			var_0_8.BeginGroup()
-			var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, name_alpha)
-			var_0_8.PushFont(fontC[20])
-			local name_text = (type(net.auth.user.first_name) == "string" and net.auth.user.first_name ~= "") and net.auth.user.first_name or net.auth.user.tag
-			var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20(name_text)).x) / 2)
-			var_0_8.Text(var_0_20(name_text))
-			var_0_8.PopFont()
-			var_0_8.PopStyleVar()
-			var_0_8.EndGroup()
-		end
-		
-		var_0_8.Spacing()
-		
-		if welcome_alpha > 0 then
-			var_0_8.BeginGroup()
-			var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, welcome_alpha)
-			var_0_8.PushFont(fontC[17])
-			var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Добро пожаловать!")).x) / 2)
-			var_0_8.TextDisabled(var_0_20("Добро пожаловать!"))
-			var_0_8.PopFont()
-			var_0_8.PopStyleVar()
-			var_0_8.EndGroup()
-		end
-		
-		if net.auth.menu_load_timer == 0 and elapsed > 0.8 then
-			net.auth.menu_load_timer = os.clock()
-		end
-		
-		if net.auth.menu_load_timer > 0 then
-			local load_elapsed = os.clock() - net.auth.menu_load_timer
-			local load_progress = math.min(load_elapsed / 2.5, 1.0)
-			local progress_alpha = math.min(load_elapsed / 0.3, 1.0)
-			
-			if progress_alpha > 0 then
-				var_0_8.Spacing()
-				var_0_8.Spacing()
-				
-				var_0_8.BeginGroup()
-				var_0_8.SetCursorPosX((content_w - 50) / 2)
-				
-				local circle_radius = 25
-				local circle_pos = var_0_8.GetCursorScreenPos()
-				local circle_center = var_0_8.ImVec2(circle_pos.x + circle_radius, circle_pos.y + circle_radius)
-				local draw = var_0_8.GetWindowDrawList()
-				
-				local bg_col = getColor("Button"):u32()
-				local fg_col = accent_col
-				
-				draw:AddCircle(circle_center, circle_radius, bg_col, 32, 2)
-				
-				if load_progress > 0 then
-					draw:PathClear()
-					local start_angle = -math.pi / 2
-					local end_angle = start_angle + (load_progress * 2 * math.pi)
-					draw:PathArcTo(circle_center, circle_radius - 1, start_angle, end_angle, 32)
-					draw:PathStroke(fg_col, false, 3)
+		else
+			-- Рисуем аватарку ТОЛЬКО если НЕ закрываемся
+			if var_0_48.avatar then
+				if avatar_alpha < window_alpha then
+					var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, avatar_alpha)
 				end
-				
-				var_0_8.Dummy(var_0_8.ImVec2(50, 50))
-				var_0_8.EndGroup()
-				
-				var_0_8.Spacing()
-				
+				var_0_8.ImageRounded(var_0_48.avatar, avatar_size)
+				if avatar_alpha < window_alpha then
+					var_0_8.PopStyleVar()
+				end
+			else
 				var_0_8.BeginGroup()
-				var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, progress_alpha)
-				var_0_8.PushFont(fontC[15])
-				var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Загрузка меню...")).x) / 2)
-				var_0_8.TextDisabled(var_0_20("Загрузка меню..."))
+				local bg_col = getColor("Button"):u32()
+				var_0_8.GetWindowDrawList():AddRectFilled(
+					var_0_8.GetItemRectMin(),
+					var_0_8.ImVec2(var_0_8.GetItemRectMin().x + avatar_size, var_0_8.GetItemRectMin().y + avatar_size),
+					bg_col, 12
+				)
+				var_0_8.GetWindowDrawList():AddRect(
+					var_0_8.GetItemRectMin(),
+					var_0_8.ImVec2(var_0_8.GetItemRectMin().x + avatar_size, var_0_8.GetItemRectMin().y + avatar_size),
+					var_0_8.ColorConvertFloat4ToU32(var_0_8.ImVec4(1, 1, 1, avatar_alpha)),
+					12, 0, 2
+				)
+				var_0_8.Dummy(var_0_8.ImVec2(avatar_size, avatar_size))
+				var_0_8.SameLine()
+				var_0_8.SetCursorPosY(var_0_8.GetCursorPosY() + avatar_size / 2 - 10)
+				var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, avatar_alpha)
+				var_0_8.PushFont(fontC[20])
+				var_0_8.Text(fa.USER)
 				var_0_8.PopFont()
 				var_0_8.PopStyleVar()
 				var_0_8.EndGroup()
 			end
-			
-			if load_progress >= 1.0 and not net.auth.closing then
-				lua_thread.create(function()
-					wait(50)
-					net.auth.closing = true
-					net.auth.menu_load_timer = 0
-					var_0_21.main_open_timer = os.clock()
-					win.main.v = true
-					net.auth.win.v = false
-					net.auth.closing = false
-					push(2, "Успешная авторизация!", 1)
-				end)
+		end
+
+		if name_alpha > 0 then
+			var_0_8.SameLine(0, text_spacing)
+			var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, name_alpha)
+			var_0_8.PushFont(fontC[20])
+			var_0_8.Text(var_0_20(name_text))
+			var_0_8.PopFont()
+			var_0_8.PopStyleVar()
+		else
+			var_0_8.SameLine(0, text_spacing)
+			var_0_8.Dummy(var_0_8.ImVec2(0, avatar_size))
+		end
+
+		var_0_8.EndGroup()
+
+		if welcome_alpha > 0 then
+			var_0_8.PushStyleVar(var_0_8.StyleVar.Alpha, welcome_alpha)
+			var_0_8.PushFont(fontC[17])
+			local nick_start_x = (content_w - total_width) / 2 + avatar_size + text_spacing
+			var_0_8.SetCursorPosX(nick_start_x)
+			var_0_8.SetCursorPosY(var_0_8.GetCursorPosY() - 45)
+			var_0_8.TextDisabled(var_0_20("Добро пожаловать!"))
+			var_0_8.PopFont()
+			var_0_8.PopStyleVar()
+		end
+
+		-- Загрузка меню
+		if net.auth.menu_load_timer == 0 and elapsed > 0.8 and not net.auth.auth_close_timer then
+			net.auth.menu_load_timer = os.clock()
+		end
+
+		if net.auth.menu_load_timer > 0 and not net.auth.auth_close_timer then
+			local load_elapsed = os.clock() - net.auth.menu_load_timer
+			local load_progress = math.min(load_elapsed / 2.5, 1.0)
+			if load_progress >= 1.0 then
+				net.auth.auth_close_timer = os.clock()
+				push(2, "Успешная авторизация!", 1)
 			end
 		end
+
 	elseif status == AUTH_AWAIT then
 		var_0_8.Spacing()
 		var_0_8.Spacing()
-		
 		var_0_8.BeginGroup()
 		var_0_8.PushFont(fontC[17])
 		var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Проверка ключа...")).x) / 2)
 		var_0_8.Text(var_0_20("Проверка ключа..."))
 		var_0_8.PopFont()
 		var_0_8.EndGroup()
-		
 		var_0_8.Spacing()
 		var_0_8.Spacing()
-		
 		var_0_8.BeginGroup()
 		var_0_8.SetCursorPosX((content_w - 40) / 2)
 		local spinner_pos = var_0_8.GetCursorScreenPos()
@@ -25555,7 +25571,7 @@ function authRender()
 		local c = var_0_8.GetStyle().Colors[var_0_8.Col.ButtonActive]
 		for i = 0, 11 do
 			local angle = (i / 12) * (2 * math.pi)
-			local alpha = (i / 12)
+			local alpha = (i / 12) * window_alpha
 			draw:AddCircleFilled(
 				var_0_8.ImVec2(spinner_pos.x + 20 + math.cos(angle + t) * r, spinner_pos.y + 20 + math.sin(angle + t) * r),
 				2.5,
@@ -25564,43 +25580,55 @@ function authRender()
 		end
 		var_0_8.Dummy(var_0_8.ImVec2(40, 40))
 		var_0_8.EndGroup()
+		
+		-- ДОБАВЛЕНО: Отображение оставшегося времени
+		if net.auth.check_start_time then
+			local time_left = 30 - (os.clock() - net.auth.check_start_time)
+			if time_left > 0 then
+				var_0_8.BeginGroup()
+				var_0_8.PushFont(fontC[14])
+				var_0_8.PopFont()
+				var_0_8.EndGroup()
+			elseif not net.auth.timeout_triggered then
+				var_0_8.BeginGroup()
+				var_0_8.PushFont(fontC[14])
+				var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Завершение...")).x) / 2)
+				var_0_8.TextDisabled(var_0_20("Завершение..."))
+				var_0_8.PopFont()
+				var_0_8.EndGroup()
+			end
+		end
 	else
 		var_0_8.Spacing()
-		
 		var_0_8.BeginGroup()
 		var_0_8.PushFont(fontC[17])
 		var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Ключ доступа")).x) / 2)
 		var_0_8.Text(var_0_20("Ключ доступа"))
 		var_0_8.PopFont()
 		var_0_8.EndGroup()
-		
 		var_0_8.Spacing()
-		
 		var_0_8.BeginGroup()
 		var_0_8.PushFont(fontC[15])
 		var_0_8.SetCursorPosX((content_w - var_0_8.CalcTextSize(var_0_20("Ключ выдаётся в панели управления")).x) / 2)
 		var_0_8.TextDisabled(var_0_20("Ключ выдаётся в панели управления"))
 		var_0_8.PopFont()
 		var_0_8.EndGroup()
-		
 		var_0_8.Spacing()
 		var_0_8.Spacing()
-
 		var_0_8.BeginGroup()
 		var_0_8.PushItemWidth(-1)
 		local flags = var_0_21.hide_token and var_0_8.InputTextFlags.Password or 0
 		var_0_8.InputText("##auth_token", net.auth.token, flags)
 		var_0_8.PopItemWidth()
 		var_0_8.EndGroup()
-
 		var_0_8.Spacing()
 
 		if net.auth.error then
 			local child_bg_idx = var_0_8.Col.ChildBg or var_0_8.Col.ChildWindowBg or var_0_8.Col.WindowBg
-			var_0_8.PushStyleColor(child_bg_idx, var_0_8.ImVec4(1, 0.2, 0.2, 0.1))
+			var_0_8.PushStyleColor(child_bg_idx, var_0_8.ImVec4(1, 0.2, 0.2, 0.1 * window_alpha))
 			var_0_8.BeginChild("##auth_err", var_0_8.ImVec2(-1, 50), true)
 			var_0_8.PushFont(fontC[15])
-			var_0_8.TextColored(var_0_8.ImVec4(1, 0.3, 0.3, 1), var_0_20(net.auth.error))
+			var_0_8.TextColored(var_0_8.ImVec4(1, 0.3, 0.3, window_alpha), var_0_20(net.auth.error))
 			var_0_8.PopFont()
 			var_0_8.EndChild()
 			var_0_8.PopStyleColor()
@@ -25611,9 +25639,11 @@ function authRender()
 		local btn_w = var_0_8.GetContentRegionAvail().x
 		local token_str = var_0_20:decode(net.auth.token.v)
 		local can_send = token_str and not token_str:isSpace()
-		if var_0_8.StatusButton(can_send, var_0_20("Продолжить"), var_0_8.ImVec2(btn_w, 36)) and can_send then
+		if var_0_8.StatusButton(can_send, var_0_20("Продолжить"), var_0_8.ImVec2(btn_w, 25)) and can_send then
 			net.auth.error = nil
 			net.auth.status = AUTH_AWAIT
+			net.auth.check_start_time = os.clock() -- ДОБАВЛЕНО: запись времени начала проверки
+			net.auth.timeout_triggered = false -- Сброс флага таймаута
 			net.auth.save_token()
 			net.auth.check_token()
 		end
@@ -25621,6 +25651,9 @@ function authRender()
 
 	var_0_8.End()
 	var_0_8.PopStyleVar(3)
+	if is_fading then
+		var_0_8.PopStyleVar()
+	end
 end
 
 function asyncHttpRequest(arg_421_0, arg_421_1, arg_421_2, arg_421_3, arg_421_4)
@@ -30200,7 +30233,7 @@ function reportRender()
 		end
 
 		-- psaiodjgoidg
-		var_0_8.SameLine(var_511_58.x - 10)
+		var_0_8.SameLine(var_511_58.x - 5)
 
 		if arg_511_6 > 0 and var_0_66.edit == 0 then
 			if var_0_8.IconButton(fa.CHEVRON_UP) and arg_511_6 ~= 1 then
@@ -34287,11 +34320,11 @@ function formRender()
 	var_0_8.Columns(2, "aform_hotkeys", false)
 	var_0_8.Text(var_0_20("Принять форму"))
 	var_0_8.NextColumn()
-	var_0_27.HotKey("##accform", var_0_59.accform, 170, onHotKeyFunc)
+	var_0_27.HotKey("##accform", var_0_59.accform, 130, onHotKeyFunc)
 	var_0_8.NextColumn()
 	var_0_8.Text(var_0_20("Пропустить форму"))
 	var_0_8.NextColumn()
-	var_0_27.HotKey("##skipform", var_0_59.skipform, 170, onHotKeyFunc)
+	var_0_27.HotKey("##skipform", var_0_59.skipform, 130, onHotKeyFunc)
 	var_0_8.Columns(1, "aform_hotkeys_end", false)
 
 	var_0_8.AddCursorPos(0, 12)
@@ -34331,19 +34364,19 @@ function formRender()
 			var_0_8.PushStyleColor(var_0_8.Col.Button, var_0_8.ImVec4(0.2, 0.2, 0.2, 0.2))
 			var_0_8.PushStyleColor(var_0_8.Col.ButtonHovered, var_0_8.ImVec4(0.2, 0.2, 0.2, 0.2))
 			var_0_8.PushStyleColor(var_0_8.Col.ButtonActive, var_0_8.ImVec4(0.2, 0.2, 0.2, 0.2))
-			var_0_8.Button(var_0_20(var_498_2) .. "##takeform_ps", var_0_8.ImVec2(left_w * 0.45, 0))
+			var_0_8.Button(var_0_20(var_498_2) .. "##takeform_ps", var_0_8.ImVec2(left_w * 0.40, 0))
 			var_0_8.PopStyleColor(3)
 		else
-			var_0_27.HotKey("##takeform_ps", var_0_59.takeform, left_w * 0.45, onHotKeyFunc)
+			var_0_27.HotKey("##takeform_ps", var_0_59.takeform, left_w * 0.40, onHotKeyFunc)
 		end
 		var_0_8.NextColumn()
-		var_0_8.Text(var_0_20("Спросить подтверждение"))
+		var_0_8.Text(var_0_20("Подтверждение"))
 		var_0_8.NextColumn()
-		var_0_27.HotKey("##queryform_ps", var_0_59.queryform, left_w * 0.45, onHotKeyFunc)
+		var_0_27.HotKey("##queryform_ps", var_0_59.queryform, left_w * 0.40, onHotKeyFunc)
 		var_0_8.Columns(1, "aform_pre_spec_end", false)
 
 		var_0_8.AddCursorPos(0, 6)
-		if var_0_8.DarkButton(var_0_20("Местоположение окна") .. "##posform_ps", var_0_8.ImVec2(left_w - 30, 25)) then
+		if var_0_8.DarkButton(var_0_20("Местоположение окна") .. "##posform_ps", var_0_8.ImVec2(left_w - 45, 25)) then
 			local var_498_3 = {350, 90}
 			win.main.v = false
 			lua_thread.create(function()
@@ -34366,12 +34399,14 @@ function formRender()
 			end)
 		end
 
-		var_0_8.ToggleButton(var_0_20("Выдача наказания по кнопке принятия"), var_0_67.pre_spec.same_key)
+		var_0_8.AddCursorPos(0, 10)
+		var_0_8.ToggleButton(var_0_20("Выдача наказания\nпо кнопке принятия"), var_0_67.pre_spec.same_key)
 	end
 
 	var_0_8.AddCursorPos(0, 10)
 	section_title("Уведомления")
 	var_0_8.ToggleButton(var_0_20("Звуковое уведомление"), var_0_67.sound_b)
+	var_0_8.SameLine()
 	if var_0_67.sound_b.v and var_0_8.IconButton(fa.GEAR) then
 		var_0_8.OpenPopup("##soundformset")
 	end
@@ -34409,7 +34444,7 @@ function formRender()
 		var_0_8.EndPopup()
 	end
 
-	var_0_8.AddCursorPos(0, 16)
+	var_0_8.AddCursorPos(0, 10)
 	section_title("Быстрая настройка по уровню")
 	var_0_8.Spacing()
 	for iter_498_0 = 1, 6 do
@@ -36296,7 +36331,7 @@ function reconStatsDraw()
             )
         end
 
-        var_0_8.TextDisabled(var_0_20("Очередь слежки:"))
+        var_0_8.TextDisabled(var_0_20("Следят за игроком:"))
         var_0_8.Separator()
 
         for iter_529_12, iter_529_13 in ipairs(var_529_52) do
@@ -40353,7 +40388,11 @@ function var_0_19.onServerMessage(arg_600_0, arg_600_1)
 					end
 					var_600_193.match = string.format("/mute %s 60 Обход рекламы в VIP", var_600_187)
 					var_600_193.alert = false
-					var_600_193.silent = true
+					var_600_193.silent = false
+					if var_0_67.sound_b.v and var_0_67.hSound ~= nil then
+						var_0_9.BASS_ChannelSetAttribute(var_0_67.hSound, BASS_ATTRIB_VOL, var_0_67.sound_vol.v / 5)
+						var_0_9.BASS_ChannelPlay(var_0_67.hSound, false)
+					end
 					var_0_67.last = var_600_193.form
 					var_0_8.SetWindowSize("##GetFormAccept", var_0_8.ImVec2(350, 80))
 				end
