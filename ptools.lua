@@ -30465,14 +30465,14 @@ function checkerRender()
             var_0_8.PopItemWidth()
             var_0_8.EndGroup()
 
-            var_0_8.AddCursorPos((csz.x - 200) / 2, 0)
+            var_0_8.AddCursorPos((csz.x - 150) / 2, 0)
             var_0_8.BeginGroup()
             local w3 = (csz.x - 15) / 3
-            if var_0_8.StatusButton(item.align == 1, fa.ALIGN_LEFT .. "##PlCheckerAlign1", var_0_8.ImVec2(w3, 25)) then item.align = 1; dirty = true end
+            if var_0_8.StatusButton(item.align == 1, fa.ALIGN_LEFT .. "##PlCheckerAlign1", var_0_8.ImVec2(45, 25)) then item.align = 1; dirty = true end
             var_0_8.SameLine(nil, 5)
-            if var_0_8.StatusButton(item.align == 2, fa.ALIGN_CENTER .. "##PlCheckerAlign2", var_0_8.ImVec2(w3, 25)) then item.align = 2; dirty = true end
+            if var_0_8.StatusButton(item.align == 2, fa.ALIGN_CENTER .. "##PlCheckerAlign2", var_0_8.ImVec2(50, 25)) then item.align = 2; dirty = true end
             var_0_8.SameLine(nil, 5)
-            if var_0_8.StatusButton(item.align == 3, fa.ALIGN_RIGHT .. "##PlCheckerAlign3", var_0_8.ImVec2(w3, 25)) then item.align = 3; dirty = true end
+            if var_0_8.StatusButton(item.align == 3, fa.ALIGN_RIGHT .. "##PlCheckerAlign3", var_0_8.ImVec2(45, 25)) then item.align = 3; dirty = true end
             var_0_8.EndGroup()
 
             var_0_8.AddCursorPos((csz.x - 175) / 2, 0)
