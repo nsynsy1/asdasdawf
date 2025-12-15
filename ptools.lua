@@ -43218,7 +43218,7 @@ function SettingsInitialise()
 		end
 	end
 
-	local cp1251_file_list = {"gps", "weapons", "server_cmd", "questions", "admin_cmd"}
+	local cp1251_file_list = {"gps", "weapons", "server_cmd", "questions"}
 	for _, file_name in ipairs(cp1251_file_list) do
 		local file_content = readFile(dirml .. "/files/json/" .. file_name .. ".json")
 		if file_content ~= "" then
@@ -43283,6 +43283,66 @@ function SettingsInitialise()
 	end
 
 	local cp1251_file_list = {"skins"}
+	for _, file_name in ipairs(cp1251_file_list) do
+		local file_content = readFile(dirml .. "/files/json/" .. file_name .. ".json")
+		if file_content ~= "" then
+			local function decode_from_cp1251(text)
+				-- Создаем отдельный объект для декодирования из CP1251
+				local cp1251_decoder = var_0_5.CP1251
+				if cp1251_decoder then
+					local success, decoded = pcall(function()
+						return cp1251_decoder.decode(text)
+					end)
+					if success then
+						return decoded
+					end
+				end
+				return text
+			end
+			
+			local function process_data(data)
+				if type(data) == "table" then
+					for i, v in ipairs(data) do
+						if type(v) == "string" then
+							-- Если строка содержит кракозябры (не-ASCII символы)
+							if v:match("[\128-\255]") then
+								-- Пытаемся декодировать из CP1251
+								local decoded = decode_from_cp1251(v)
+								if decoded ~= v and not decoded:match("") then
+									data[i] = decoded
+								end
+							end
+						elseif type(v) == "table" and v.name then
+							-- Если в скинах есть поле name с кракозябрами
+							if type(v.name) == "string" and v.name:match("[\128-\255]") then
+								v.name = decode_from_cp1251(v.name)
+							end
+						end
+					end
+				end
+				return data
+			end
+			
+			-- Сначала пытаемся парсить как есть (если файл в UTF-8)
+			local ok, file_data = pcall(decodeJson, file_content)
+			
+			if not ok or type(file_data) ~= "table" then
+				-- Пробуем декодировать весь файл из CP1251 перед парсингом
+				local decoded_content = decode_from_cp1251(file_content)
+				ok, file_data = pcall(decodeJson, decoded_content)
+			end
+			
+			if type(file_data) == "table" then
+				-- Дополнительная обработка строк
+				file_data = process_data(file_data)
+				var_0_21.files[file_name] = table.copy(file_data)
+			else
+				print("Failed to parse JSON for file:", file_name)
+			end
+		end
+	end
+
+	local cp1251_file_list = {"admin_cmd"}
 	for _, file_name in ipairs(cp1251_file_list) do
 		local file_content = readFile(dirml .. "/files/json/" .. file_name .. ".json")
 		if file_content ~= "" then
