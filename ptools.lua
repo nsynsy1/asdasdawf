@@ -8,11 +8,11 @@ end
 
 script_name("Primorskiy Tools")
 script_author("Arizona Games")
-script_version_number(9)
+script_version_number(10)
 
 BETA = true
 
-script_version(("1.3.6 %s"):format(BETA and "Beta" or "Release"))
+script_version(("1.3.7 %s"):format(BETA and "Beta" or "Release"))
 script_url("http://techhelper.fun/")
 script_properties("work-in-pause")
 require("sampfuncs")
@@ -19196,8 +19196,12 @@ function initAdmins(arg_334_0)
 		return def
 	end
 
+	if arg_334_0.delay ~= nil then
+        var_0_69.set.delay.v = take(arg_334_0.delay, var_0_69.set.delay.v)
+    end
+
 	-- фикс интервала опроса
-	var_0_69.set.delay.v = 7
+	--var_0_69.set.delay.v = 7
 
 	-- дефолтные старшие 5-8
 	local default_seniors = {
@@ -30873,6 +30877,7 @@ end
 	if AdminSettingGroup(var_508_0.info.active.show.v, var_508_0.info.active.color, "Актив", nil, var_508_0.bool_format.v) == 1 then
 		var_508_0.info.active.show.v = not var_508_0.info.active.show.v
 		save_dirty = true
+		quick_save()
 	end
 
 	var_0_8.SameLine()
@@ -31194,6 +31199,8 @@ end
 		if var_508_0.delay.v > 30 then
 			var_508_0.delay.v = 30
 		end
+
+		saveGlobal()
 	end
 
 	var_0_8.PopItemWidth()
