@@ -8,11 +8,11 @@ end
 
 script_name("Primorskiy Tools")
 script_author("Arizona Games")
-script_version_number(10)
+script_version_number(11)
 
 BETA = true
 
-script_version(("1.3.7 %s"):format(BETA and "Beta" or "Release"))
+script_version(("1.3.8 %s"):format(BETA and "Beta" or "Release"))
 script_url("http://techhelper.fun/")
 script_properties("work-in-pause")
 require("sampfuncs")
