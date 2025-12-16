@@ -18594,11 +18594,13 @@ addEventHandler("onWindowMessage", function(arg_316_0, arg_316_1, arg_316_2)
 				sampSendChat(string.format("/gotobiz %s", check_hb.id))
 				sampSendChat(string.format("/abizinfo %s", check_hb.id))
 				chatInfo("Проверка бизнеса: {COL}%s", check_hb.id)
+			elseif check_hb.type == 3 then
+				sampSendChat(string.format("/gototr %s", check_hb.id))
+				chatInfo("Проверка трейлера: {COL}%s", check_hb.id)
 			end
 		end
 	end
 end)
-
 function setJetPackSpeed(arg_318_0)
 	var_0_3.setfloat(9252664, 0.8 - arg_318_0 / 20, true)
 	var_0_3.setfloat(9252668, arg_318_0 / 10 * 6, true)
@@ -43493,6 +43495,7 @@ function CommandsInitialise()
 	sampRegisterChatCommand("ipinfo", ipinfo_cmd)
 	sampRegisterChatCommand("goh", go_h_cmd)
 	sampRegisterChatCommand("gob", go_b_cmd)
+	sampRegisterChatCommand("got", go_t_cmd)
 	sampRegisterChatCommand("regbot", var_0_58.menu)
 	sampRegisterChatCommand("accept", net.accept.cmd)
 	sampRegisterChatCommand("alic", giveAllLicenses)
@@ -44064,6 +44067,11 @@ function go_h_cmd(arg_712_0)
 
 			chatInfo("Проверка домов остановлена")
 		end
+		if check_hb.type == 3 then
+			chatError("Сначала завершите проверку трейлеров (/got)")
+		else
+			check_hb.state = false
+		end
 	else
 		if quick.i.lvl < 3 then
 			return chatError("Команда доступна с 3-го уровня!")
@@ -44080,14 +44088,48 @@ function go_h_cmd(arg_712_0)
 	end
 end
 
-function go_b_cmd(arg_713_0)
+function go_t_cmd(arg_trailer)
 	if check_hb.state then
+		if check_hb.type == 2 then
+			chatError("Сначала завершите проверку бизнесов (/gob)")
+		else
+			check_hb.state = false
+
+			chatInfo("Проверка трейлеров остановлена")
+		end
 		if check_hb.type == 1 then
 			chatError("Сначала завершите проверку домов (/goh)")
 		else
 			check_hb.state = false
+		end
+	else
+		if quick.i.lvl < 3 then
+			return chatError("Команда доступна с 3-го уровня!")
+		end
+
+		check_hb.state = true
+		check_hb.id = tonumber(arg_trailer) or 1
+		check_hb.type = 3
+
+		chatInfo("Используйте {COL}стрелочки (вправо/влево){DEF}, чтобы перемещаться между домами!")
+		sampSendChat(string.format("/gototr %s", check_hb.id))
+		chatInfo("Проверка трейлера: {COL}%s", check_hb.id)
+	end
+end
+
+function go_b_cmd(arg_713_0)
+	if check_hb.state then
+		if check_hb.type == 3 then
+			chatError("Сначала завершите проверку трейлеров (/got)")
+		else
+			check_hb.state = false
 
 			chatInfo("Проверка бизнесов остановлена")
+		end
+		if check_hb.type == 1 then
+			chatError("Сначала завершите проверку домов (/goh)")
+		else
+			check_hb.state = false
 		end
 	else
 		if quick.i.lvl < 3 then
@@ -48912,9 +48954,9 @@ function admins_render()
         if check.admins == nil then
             check.admins = os.clock()
         elseif tonumber(check.admins) and os.clock() - check.admins > cfg.delay.v + 5 then
-            --chatError("Скрипт не смог выявить Вас как администратора!")
-            --chatError("Если Вы считаете это ошибкой, то обратитесь к разработчикам!")
-            --scr:unload()
+            chatError("Скрипт не смог выявить Вас как администратора!")
+            chatError("Если Вы считаете это ошибкой, то обратитесь к разработчикам!")
+            scr:unload()
             return
         end
         var_0_69.update_timer = os.clock()
