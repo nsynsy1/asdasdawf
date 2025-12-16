@@ -8,7 +8,7 @@ end
 
 script_name("Primorskiy Tools")
 script_author("Arizona Games")
-script_version_number(11)
+script_version_number(10)
 
 BETA = true
 
