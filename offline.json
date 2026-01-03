@@ -1,6 +1,6 @@
 {
 	"rodina": {
-		"status": false,
-		"info": "-"
+		"status": true,
+		"info": "Hello, world!"
 	}
 }
